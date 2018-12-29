@@ -2,19 +2,26 @@ require 'httparty'
 require 'time'
 require 'digest'
 require 'pp'
-
+require 'fileutils'
 
 class MattermostApi
 	include HTTParty
 
 	format :json
-	# debug_output $stdout
+	debug_output $stdout
 	
 	def initialize(mattermost_url, login_id, password)
-		@base_uri = mattermost_url + 'api/v4/'
+		@base_uri = mattermost_url + 'api/v4'
 		@login_id = login_id
 		@password = password
-		@tmp_file = './tmp/' + Digest::MD5.hexdigest("#{login_id}")
+
+		tmp_dir = './tmp/'
+
+		unless File.directory?(tmp_dir)
+		  FileUtils.mkdir_p(tmp_dir)
+		end
+
+		@tmp_file = tmp_dir + Digest::MD5.hexdigest("#{login_id}")
 
 		@options = {
 			headers: {
@@ -55,24 +62,40 @@ class MattermostApi
 	end
 
 	def get_url(url)
-		JSON.parse(self.class.get("#{@base_uri}#{url}", @options).to_s)
+		response = self.class.get("#{@base_uri}#{url}", @options)
+		
+		returns = JSON.parse(response.to_s)
+		# pp returns
+
+		returns
 	end
 
 	def get_users_by_auth(auth_method)
-		users = self.get_url('/users')
+		per_page = 60
+		current_page = 0
 
 		output_users = {}
-		
 
 		if auth_method == 'email'
 			auth_method = ''
 		end
 
-		users.each do |user|
-			if user['auth_service'] == auth_method
-				output_users[user['email']] = user['username']
+		loop do
+			url = "/users?page=#{current_page}"
+			users = self.get_url(url)
+
+			break if users.count == 0
+
+			users.each do |user|
+				if user['auth_service'] == auth_method
+					output_users[user['email']] = user['username'].to_s
+				end
 			end
+
+			current_page += 1
 		end
+
+		pp output_users.count
 
 		return output_users
 	end
