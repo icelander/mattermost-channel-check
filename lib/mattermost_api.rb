@@ -8,7 +8,7 @@ class MattermostApi
 	include HTTParty
 
 	format :json
-	debug_output $stdout
+	# debug_output $stdout
 	
 	def initialize(mattermost_url, login_id, password)
 		@base_uri = mattermost_url + 'api/v4'
@@ -94,8 +94,6 @@ class MattermostApi
 
 			current_page += 1
 		end
-
-		pp output_users.count
 
 		return output_users
 	end
