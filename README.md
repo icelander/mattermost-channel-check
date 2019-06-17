@@ -1,6 +1,6 @@
-# Mattermost User Export
+# Mattermost Channel Check
 
-When converting a users to SAML auth you need to generate a user file. [There are instructions for this](https://docs.mattermost.com/administration/command-line-tools.html#mattermost-ldap-idmigrate) but this requires a `users.json` file to determine the username and email matching. If you have a server a with only a few `email` or `ldap` users this is a good way to generate a `users.json` file that will update them to use SAML authentication.
+In the event of an error in importing this script will verify that users are in the correct channels.
 
 ## Setup
 
@@ -11,11 +11,16 @@ When converting a users to SAML auth you need to generate a user file. [There ar
 
 ## Run
 
-1. run `./main.rb <auth_method> > users.json`, where `auth_method` is either `email` or `ldap`
-2. Move the new `users.json` file to your workstation
-3. Edit to remove any accounts you don't want migrated to SAML, or don't exist in SAML
-4. Copy the new `users.json` to the server. *Tip: Overwrite the existing one for safety*
-5. Go to your Mattermost directory: `cd /opt/mattermost`
-6. Now run `sudo bin/mattermost user migrate_auth email saml <path to users.json> --dryRun` to test. Make sure to change `email` to `ldap` if you're updating LDAP users.
+```
+./channel_check.rb import.json
+```
 
-**Note:** *To make the changes permanent remove `--dryRun`*
+Where `import.json` is the path to your file import. Because this works over the API it can be run on any machine that can access the Mattermost server. This will check all the users in the export file and verify that they're in the correct channels.
+
+If a user isn't in a channel that's specified this will be printed to stdout. If you want the script to fix this automatically, run it with the `--apply` flag:
+
+```
+./channel_check.rb import.json --apply
+```
+
+All changes will be sent to stdout.
